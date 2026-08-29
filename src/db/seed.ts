@@ -1,3 +1,7 @@
+import fs from 'fs';
+if (fs.existsSync('.env')) {
+  process.loadEnvFile('.env');
+}
 import { closeDatabase } from './schema';
 import { createRestaurant, createCategory, createMenuItem } from './queries';
 import { hashPassword } from '../lib/password';

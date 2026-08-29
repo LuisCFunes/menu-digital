@@ -68,9 +68,5 @@ A modern, dynamic, and fully responsive Digital Menu platform designed for resta
 - **Session Management**: Secure UUID sessions stored directly in the edge database.
 - **Route Protection**: API routes and dashboard pages are strictly guarded by SSR authentication middleware.
 
-## 📱 Screenshots
-
-*(Add screenshots of your public menu and dashboard here!)*
-
 ---
 *Developed by Luis Funes.*
