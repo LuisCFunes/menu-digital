@@ -66,6 +66,7 @@ const categorizedItems = categories.map(category => ({
         <div class="flex gap-4 mb-8">
           <button class="tab-btn px-4 py-2 rounded-md bg-red-600 text-white font-medium" data-tab="menu">Menu</button>
           <button class="tab-btn px-4 py-2 rounded-md bg-gray-800 text-gray-300 font-medium hover:bg-gray-700" data-tab="settings">Settings</button>
+          <button class="tab-btn px-4 py-2 rounded-md bg-gray-800 text-gray-300 font-medium hover:bg-gray-700" data-tab="qr">QR Code</button>
         </div>
 
         
@@ -310,6 +311,24 @@ const categorizedItems = categories.map(category => ({
               </div>
             </div>
           </div>
+        <div id="qrTab" class="tab-content hidden">
+          <div class="bg-gray-900 rounded-lg p-8 max-w-2xl mx-auto text-center mt-10">
+            <h2 class="text-3xl font-bold text-white mb-4">Table QR Code</h2>
+            <p class="text-gray-400 mb-8 text-lg">Print this QR code and place it on your tables. Customers can scan it to instantly view your digital menu.</p>
+            
+            <div class="bg-white p-6 rounded-xl inline-block mb-8 border-4 border-gray-800 shadow-2xl">
+              <img id="qrCodeImage" src="" alt="Menu QR Code" class="w-64 h-64" />
+            </div>
+
+            <div class="flex justify-center gap-4">
+              <a id="downloadQrBtn" href="#" target="_blank" download="Menu_QR.png" class="bg-red-600 text-white px-6 py-3 rounded-md hover:bg-red-700 transition-colors font-semibold flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                Download High Quality QR
+              </a>
+            </div>
+          </div>
+        </div>
+
         </div>
 
         
@@ -439,6 +458,15 @@ const categorizedItems = categories.map(category => ({
         });
       });
     });
+    // Initialize QR Code
+    const qrCodeImage = document.getElementById('qrCodeImage') as HTMLImageElement;
+    const downloadQrBtn = document.getElementById('downloadQrBtn') as HTMLAnchorElement;
+    if (qrCodeImage && downloadQrBtn) {
+      const publicUrl = window.location.origin;
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(publicUrl)}&margin=10`;
+      qrCodeImage.src = qrUrl;
+      downloadQrBtn.href = qrUrl;
+    }
 
     // Helper: create a menu item row element
     function createItemRow(item: any, categoryName: string) {
