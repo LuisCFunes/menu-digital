@@ -1,43 +1,76 @@
-# Astro Starter Kit: Minimal
+# 🍽️ Digital Menu Platform
 
-```sh
-npm create astro@latest -- --template minimal
-```
+A modern, dynamic, and fully responsive Digital Menu platform designed for restaurants. This project features a beautiful public-facing menu and a secure, comprehensive admin dashboard for real-time inventory management.
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+## ✨ Features
 
-## 🚀 Project Structure
+- **Public Menu Interface**: A fast, mobile-friendly menu for customers to browse categories, dishes, descriptions, and prices.
+- **Admin Dashboard**: Secure, password-protected backend to manage the restaurant's offerings.
+- **Real-time CRUD Operations**: Create, Read, Update, and Delete categories and menu items on the fly.
+- **Category Reordering**: Intuitively move categories up or down to prioritize what customers see first.
+- **Cloud Image Uploads**: Direct integration with Cloudinary to seamlessly upload and store food photography.
+- **Theming**: Configurable restaurant branding (colors, logos, and cover images).
 
-Inside of your Astro project, you'll see the following folders and files:
+## 🛠️ Tech Stack
 
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
-```
+- **Framework**: [Astro](https://astro.build/) (Server-Side Rendering mode)
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+- **Database**: [Turso](https://turso.tech/) (LibSQL/SQLite at the edge)
+- **Storage**: [Cloudinary](https://cloudinary.com/) SDK for image management
+- **Authentication**: Custom session-based auth with Argon2 password hashing
+- **Deployment**: [Render](https://render.com/)
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+## 🚀 Getting Started
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+### Prerequisites
 
-Any static assets, like images, can be placed in the `public/` directory.
+- Node.js (v22+)
+- A Turso database
+- A Cloudinary account
 
-## 🧞 Commands
+### Installation
 
-All commands are run from the root of the project, from a terminal:
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/LuisCFunes/menu-digital.git
+   cd menu-digital
+   ```
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-## 👀 Want to learn more?
+3. **Environment Variables**
+   Create a `.env` file in the root directory and add your keys:
+   ```env
+   TURSO_DATABASE_URL=libsql://your-db-name.turso.io
+   TURSO_AUTH_TOKEN=your-turso-auth-token
+   CLOUDINARY_URL=cloudinary://<api_key>:<api_secret>@<cloud_name>
+   ```
 
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+4. **Seed the database**
+   Populate your database with the initial schema and example data:
+   ```bash
+   npm run seed
+   ```
+
+5. **Start the development server**
+   ```bash
+   npm run dev
+   ```
+   *The app will be available at `http://localhost:4321`*
+
+## 🔒 Security
+
+- **Argon2 Hashing**: The admin dashboard password is encrypted using Argon2, ensuring industry-standard security.
+- **Session Management**: Secure UUID sessions stored directly in the edge database.
+- **Route Protection**: API routes and dashboard pages are strictly guarded by SSR authentication middleware.
+
+## 📱 Screenshots
+
+*(Add screenshots of your public menu and dashboard here!)*
+
+---
+*Developed by Luis Funes.*
