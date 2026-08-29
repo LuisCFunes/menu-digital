@@ -10,6 +10,7 @@ A modern, dynamic, and fully responsive Digital Menu platform designed for resta
 - **Category Reordering**: Intuitively move categories up or down to prioritize what customers see first.
 - **Cloud Image Uploads**: Direct integration with Cloudinary to seamlessly upload and store food photography.
 - **Theming**: Configurable restaurant branding (colors, logos, and cover images).
+- **QR Code Generator**: Integrated tool in the dashboard to instantly generate and download a printable QR code linked to the live menu.
 
 ## 🛠️ Tech Stack
 
