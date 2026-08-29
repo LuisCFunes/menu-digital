@@ -1,0 +1,74 @@
+{
+  "main": [
+    {
+      "id": "1",
+      "name": "Costilla de Cerdo BBQ",
+      "price": 185,
+      "image": "https://images.unsplash.com/photo-1544025162-d76694265947?w=400&h=400&fit=crop"
+    },
+    {
+      "id": "2",
+      "name": "Filete de Pollo BBQ",
+      "price": 135,
+      "image": "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=400&h=400&fit=crop"
+    },
+    {
+      "id": "3",
+      "name": "Chuleta de Cerdo",
+      "price": 155,
+      "image": "https://images.unsplash.com/photo-1544025162-d76694265947?w=400&h=400&fit=crop"
+    },
+    {
+      "id": "4",
+      "name": "Carne de Res a la Brasa",
+      "price": 175,
+      "image": "https://images.unsplash.com/photo-1558030006-450675393462?w=400&h=400&fit=crop"
+    },
+    {
+      "id": "5",
+      "name": "Plato Mixto",
+      "price": 195,
+      "image": "https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=400&h=400&fit=crop"
+    },
+    {
+      "id": "6",
+      "name": "Pinchos de Camarón BBQ",
+      "price": 165,
+      "image": "https://images.unsplash.com/photo-1565680018434-b513d5e5fd47?w=400&h=400&fit=crop"
+    }
+  ],
+  "desserts": [
+    {
+      "id": "7",
+      "name": "Tres Leches",
+      "price": 65,
+      "image": "https://images.unsplash.com/photo-1571115177098-24ec42ed204d?w=400&h=400&fit=crop"
+    },
+    {
+      "id": "8",
+      "name": "Flan Napolitano",
+      "price": 55,
+      "image": "/images/cbb30178-4905-4d8f-b4ea-21889cdc5748.jpg"
+    }
+  ],
+  "drinks": [
+    {
+      "id": "9",
+      "name": "Coca-Cola",
+      "price": 25,
+      "image": "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=400&h=400&fit=crop"
+    },
+    {
+      "id": "10",
+      "name": "Agua Natural",
+      "price": 20,
+      "image": "/images/19c2eeed-b0a7-4aa7-a04b-ba3d38b2ef81.jpg"
+    },
+    {
+      "id": "11",
+      "name": "Té Helado",
+      "price": 25,
+      "image": "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400&h=400&fit=crop"
+    }
+  ]
+}

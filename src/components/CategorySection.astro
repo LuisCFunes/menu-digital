@@ -1,0 +1,33 @@
+---
+import MenuCard from './MenuCard.astro';
+
+interface MenuItem {
+  id: string;
+  name: string;
+  price: number;
+  image: string;
+  description?: string;
+}
+
+interface Props {
+  title: string;
+  items: MenuItem[];
+}
+
+const { title, items } = Astro.props;
+---
+
+<section class="mb-12">
+  <h2 class="text-3xl font-bold mb-6 border-b-2 pb-2" style={{ borderColor: 'var(--color-primary)' }}>
+    {title}
+  </h2>
+  {items.length > 0 ? (
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      {items.map((item) => (
+        <MenuCard name={item.name} price={item.price} image={item.image} description={item.description} />
+      ))}
+    </div>
+  ) : (
+    <p class="italic opacity-70">No hay productos disponibles</p>
+  )}
+</section>

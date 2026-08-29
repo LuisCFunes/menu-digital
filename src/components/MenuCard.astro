@@ -1,0 +1,25 @@
+---
+interface Props {
+  name: string;
+  price: number;
+  image: string;
+  description?: string;
+}
+
+const { name, price, image, description } = Astro.props;
+---
+
+<div class="bg-black/20 rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
+  <div class="aspect-video w-full overflow-hidden bg-black/40">
+    <img
+      src={image}
+      alt={name}
+      class="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+    />
+  </div>
+  <div class="p-4">
+    <h3 class="text-lg font-semibold">{name}</h3>
+    {description && <p class="text-sm opacity-80 mt-1 mb-2 leading-tight">{description}</p>}
+    <p class="text-xl font-bold mt-1" style={{ color: 'var(--color-primary)' }}>L {price.toFixed(2)}</p>
+  </div>
+</div>

@@ -1,0 +1,39 @@
+---
+interface Props {
+  title: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  textColor?: string;
+}
+
+const { title, primaryColor = '#dc2626', secondaryColor = '#030712', textColor = '#ffffff' } = Astro.props;
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+    <style is:inline set:html={`
+      :root {
+        --color-primary: ${primaryColor};
+        --color-secondary: ${secondaryColor};
+        --color-text: ${textColor};
+      }
+      body {
+        background-color: var(--color-secondary);
+        color: var(--color-text);
+      }
+    `} />
+  </head>
+  <body class="min-h-screen">
+    <slot />
+  </body>
+</html>
+
+<style is:global>
+  @import '../styles/global.css';
+</style>

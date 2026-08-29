@@ -1,0 +1,102 @@
+---
+import Layout from '../layouts/Layout.astro';
+import CategorySection from '../components/CategorySection.astro';
+import { getDatabase } from '../db/schema';
+import { getSingleRestaurant, getCategoriesByRestaurant, getMenuItemsByRestaurant } from '../db/queries';
+
+const db = await getDatabase();
+const restaurant = await getSingleRestaurant();
+
+if (!restaurant) {
+  return Astro.redirect('/');
+}
+
+const categories = await getCategoriesByRestaurant(restaurant.id);
+const menuItems = await getMenuItemsByRestaurant(restaurant.id);
+
+const categorizedItems = categories.map(category => ({
+  ...category,
+  items: menuItems.filter(item => item.category_id === category.id)
+}));
+---
+
+<Layout title={`${restaurant.name} - Menu`} primaryColor={restaurant.primary_color} secondaryColor={restaurant.secondary_color} textColor={restaurant.text_color}>
+  <div class="container mx-auto px-4 py-8">
+    <header class="text-center mb-10">
+      {restaurant.logo && (
+        <img 
+          src={restaurant.logo} 
+          alt={restaurant.name} 
+          class="object-cover rounded-full mx-auto mb-4 border-4 shadow-md transition-all duration-300"
+          style={`border-color: var(--color-primary); width: ${restaurant.logo_size || 128}px; height: ${restaurant.logo_size || 128}px;`}
+        />
+      )}
+      <h1 class="text-4xl sm:text-5xl font-bold tracking-tight">{restaurant.name}</h1>
+    </header>
+
+    <div class="flex flex-wrap gap-2 justify-center mb-8">
+      <button
+        class="category-filter px-4 py-2 rounded-full font-medium transition-colors"
+        data-category="all"
+        style={{ backgroundColor: 'var(--color-primary)' }}
+      >
+        Todos
+      </button>
+      {categories.map(category => (
+        <button
+          class="category-filter px-4 py-2 rounded-full border border-current opacity-70 font-medium hover:opacity-100 transition-colors"
+          data-category={category.id}
+          style={{ color: 'var(--color-text)' }}
+        >
+          {category.name}
+        </button>
+      ))}
+    </div>
+
+    <div id="menu-content">
+      {categorizedItems.map(category => (
+        <div class="category-section" data-category-id={category.id}>
+          <CategorySection
+            title={category.name}
+            items={category.items.map(item => ({
+              id: item.id,
+              name: item.name,
+              price: item.price,
+              image: item.image || '/images/placeholder.jpg',
+              description: item.description || undefined
+            }))}
+          />
+        </div>
+      ))}
+    </div>
+  </div>
+
+  <script>
+    const filterButtons = document.querySelectorAll('.category-filter') as NodeListOf<HTMLButtonElement>;
+    const sections = document.querySelectorAll('.category-section');
+
+    filterButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        filterButtons.forEach(btn => {
+          btn.style.backgroundColor = 'transparent';
+          btn.style.color = 'var(--color-text)';
+          btn.classList.add('border', 'border-current', 'opacity-70');
+        });
+        
+        button.classList.remove('border', 'border-current', 'opacity-70');
+        button.style.backgroundColor = 'var(--color-primary)';
+        button.style.color = '#ffffff'; // Keep white for active primary button for contrast usually, or let it inherit
+
+        const category = button.getAttribute('data-category');
+
+        sections.forEach(section => {
+          if (category === 'all' || section.getAttribute('data-category-id') === category) {
+            (section as HTMLElement).style.display = 'block';
+          } else {
+            (section as HTMLElement).style.display = 'none';
+          }
+        });
+      });
+    });
+  </script>
+</Layout>

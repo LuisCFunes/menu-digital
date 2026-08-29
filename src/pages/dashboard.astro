@@ -1,0 +1,944 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { getDatabase } from '../db/schema';
+import { getSingleRestaurant, getCategoriesByRestaurant, getMenuItemsByRestaurant } from '../db/queries';
+
+const db = await getDatabase();
+const restaurant = await getSingleRestaurant();
+
+if (!restaurant) {
+  return Astro.redirect('/');
+}
+import { isDashboardAuthenticated } from '../lib/auth';
+
+const isAuthenticated = await isDashboardAuthenticated(Astro.cookies);
+
+const categories = await getCategoriesByRestaurant(restaurant.id);
+const menuItems = await getMenuItemsByRestaurant(restaurant.id);
+
+const categorizedItems = categories.map(category => ({
+  ...category,
+  items: menuItems.filter(item => item.category_id === category.id)
+}));
+---
+
+<Layout title="Dashboard - MenuDigital">
+  <div class="min-h-screen bg-gray-950">
+    {!isAuthenticated ? (
+      <div id="passwordGate" class="min-h-screen flex items-center justify-center">
+        <div class="bg-gray-900 p-8 rounded-lg shadow-lg w-full max-w-md">
+          <h1 class="text-2xl font-bold text-white mb-6 text-center">Dashboard Access</h1>
+          <form id="passwordForm" class="space-y-4">
+            <div>
+              <label for="password" class="block text-sm font-medium text-gray-300 mb-1">Password</label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                required
+                class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+              />
+            </div>
+            <div id="passwordError" class="text-red-500 text-sm hidden"></div>
+            <button
+              type="submit"
+              class="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition-colors"
+            >
+              Access Dashboard
+            </button>
+          </form>
+        </div>
+      </div>
+    ) : (
+      <div id="dashboardContent" class="container mx-auto px-4 py-8">
+        <div class="flex justify-between items-center mb-8">
+          <div>
+            <h1 class="text-3xl font-bold text-white">{restaurant.name}</h1>
+            <p class="text-gray-400">Dashboard</p>
+          </div>
+          <div class="flex gap-2">
+            <a href="/" target="_blank" class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors">View Menu</a>
+            <button id="logoutBtn" class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors">Logout</button>
+          </div>
+        </div>
+
+
+        <div class="flex gap-4 mb-8">
+          <button class="tab-btn px-4 py-2 rounded-md bg-red-600 text-white font-medium" data-tab="menu">Menu</button>
+          <button class="tab-btn px-4 py-2 rounded-md bg-gray-800 text-gray-300 font-medium hover:bg-gray-700" data-tab="settings">Settings</button>
+        </div>
+
+        
+        <div id="menuTab" class="tab-content">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-2">
+              
+              <div class="bg-gray-900 rounded-lg p-6 mb-8">
+                <h2 class="text-xl font-semibold text-white mb-4">Add Menu Item</h2>
+                <form id="addItemForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label for="itemName" class="block text-sm font-medium text-gray-300 mb-1">Name</label>
+                    <input type="text" id="itemName" name="name" required class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-red-500" />
+                  </div>
+                  <div>
+                    <label for="itemPrice" class="block text-sm font-medium text-gray-300 mb-1">Price (L)</label>
+                    <input type="number" id="itemPrice" name="price" step="0.01" required class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-red-500" />
+                  </div>
+                  <div>
+                    <label for="itemCategory" class="block text-sm font-medium text-gray-300 mb-1">Category</label>
+                    <select id="itemCategory" name="category_id" required class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-red-500">
+                      {categories.map(category => (
+                        <option value={category.id}>{category.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Image (Upload or URL)</label>
+                    <div class="flex flex-col gap-3">
+                      <div class="flex items-center gap-3">
+                        <label for="itemImageUpload" class="cursor-pointer bg-gray-800 border border-gray-600 hover:bg-gray-700 text-white text-sm font-medium py-2 px-4 rounded-md transition-colors whitespace-nowrap shadow-sm">
+                          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block mr-1 -mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                          Upload File
+                        </label>
+                        <span id="itemImageFileName" class="text-sm text-gray-400 truncate">No file chosen</span>
+                        <input type="file" id="itemImageUpload" accept="image/*" class="hidden file-upload-input" data-filename-id="itemImageFileName" />
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <span class="text-xs text-gray-500 font-semibold uppercase">OR</span>
+                        <input type="text" id="itemImage" name="image" placeholder="Paste image URL here" class="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-red-500" />
+                      </div>
+                    </div>
+                  </div>
+                  <div class="md:col-span-2">
+                    <label for="itemDescription" class="block text-sm font-medium text-gray-300 mb-1">Description (Optional)</label>
+                    <textarea id="itemDescription" name="description" rows="2" class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-red-500"></textarea>
+                  </div>
+                  <div class="md:col-span-2">
+                    <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors">Add Item</button>
+                  </div>
+                </form>
+                <div id="addItemError" class="text-red-500 text-sm mt-4 hidden"></div>
+              </div>
+
+              
+              <div class="bg-gray-900 rounded-lg p-6">
+                <h2 class="text-xl font-semibold text-white mb-4">Menu Items</h2>
+                <div id="menuItemsList" class="space-y-6">
+                  {categorizedItems.map(category => (
+                    category.items.length > 0 && (
+                      <div data-category-id={category.id}>
+                        <h3 class="text-lg font-medium text-red-500 mb-3 border-b border-gray-800 pb-1">{category.name}</h3>
+                        <div class="space-y-2 category-items" data-category={category.name}>
+                          {category.items.map(item => (
+                            <div class="flex justify-between items-center bg-gray-800 p-3 rounded-md" data-item-id={item.id}>
+                              <div class="flex items-center gap-3">
+                                {item.image && <img src={item.image} alt={item.name} class="w-10 h-10 object-cover rounded" />}
+                                <div>
+                                  <p class="text-white font-medium">{item.name}</p>
+                                  <p class="text-gray-400 text-sm">L {item.price.toFixed(2)}</p>
+                                </div>
+                              </div>
+                              <div class="flex gap-2">
+                                <button class="edit-item-btn text-gray-400 hover:text-white" data-id={item.id} data-item={JSON.stringify(item)}>
+                                  Edit
+                                </button>
+                                <button class="delete-item-btn text-red-500 hover:text-red-400" data-id={item.id}>
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              
+              <div class="bg-gray-900 rounded-lg p-6">
+                <h2 class="text-xl font-semibold text-white mb-4">Categories</h2>
+                <form id="addCategoryForm" class="space-y-4 mb-6">
+                  <div>
+                    <label for="categoryName" class="block text-sm font-medium text-gray-300 mb-1">New Category</label>
+                    <div class="flex gap-2">
+                      <input type="text" id="categoryName" name="name" required class="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-red-500" />
+                      <button type="submit" class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors">Add</button>
+                    </div>
+                  </div>
+                </form>
+                <div id="addCategoryError" class="text-red-500 text-sm mb-4 hidden"></div>
+
+                <div class="space-y-2" id="categoriesList">
+                  {categories.map((category, index) => (
+                    <div class="flex justify-between items-center bg-gray-800 p-3 rounded-md group" data-cat-id={category.id}>
+                      <span class="text-white">{category.name}</span>
+                      <div class="flex items-center gap-2">
+                        {index > 0 && (
+                          <button class="move-category-btn text-gray-500 hover:text-white transition-colors p-1" data-id={category.id} data-dir="up" title="Mover arriba">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                              <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd" />
+                            </svg>
+                          </button>
+                        )}
+                        {index < categories.length - 1 && (
+                          <button class="move-category-btn text-gray-500 hover:text-white transition-colors p-1" data-id={category.id} data-dir="down" title="Mover abajo">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                              <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                          </button>
+                        )}
+                        <button class="delete-category-btn text-red-500 hover:text-red-400 text-sm ml-2" data-id={category.id}>
+                          Eliminar
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        
+        <div id="settingsTab" class="tab-content hidden">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            
+            <div class="bg-gray-900 rounded-lg p-6">
+              <h2 class="text-xl font-semibold text-white mb-4">Restaurant Settings</h2>
+              <form id="settingsForm" class="space-y-4">
+                <div>
+                  <label for="settingsName" class="block text-sm font-medium text-gray-300 mb-1">Restaurant Name</label>
+                  <input type="text" id="settingsName" name="name" value={restaurant.name} class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-red-500" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-300 mb-1">Logo (Upload or URL)</label>
+                  <div class="flex flex-col gap-3">
+                    <div class="flex items-center gap-3">
+                      <label for="settingsLogoUpload" class="cursor-pointer bg-gray-800 border border-gray-600 hover:bg-gray-700 text-white text-sm font-medium py-2 px-4 rounded-md transition-colors whitespace-nowrap shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block mr-1 -mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                        Upload Logo
+                      </label>
+                      <span id="settingsLogoFileName" class="text-sm text-gray-400 truncate">No file chosen</span>
+                      <input type="file" id="settingsLogoUpload" accept="image/*" class="hidden file-upload-input" data-filename-id="settingsLogoFileName" />
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs text-gray-500 font-semibold uppercase">OR</span>
+                      <input type="text" id="settingsLogo" name="logo" value={restaurant.logo || ''} placeholder="Paste logo URL here" class="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-red-500" />
+                    </div>
+                  </div>
+                  {restaurant.logo && <img src={restaurant.logo} alt="Logo preview" class="h-16 w-auto max-w-full object-contain mt-3 rounded shadow-sm border border-gray-700 bg-gray-800" id="formLogoPreview" />}
+                </div>
+                <div>
+                  <label for="settingsLogoSize" class="block text-sm font-medium text-gray-300 mb-1">Logo Size: <span id="logoSizeValue">{restaurant.logo_size || 128}</span>px</label>
+                  <input type="range" id="settingsLogoSize" name="logo_size" min="50" max="250" value={restaurant.logo_size || 128} class="w-full" />
+                </div>
+
+                <div>
+                  <label for="settingsPrimaryColor" class="block text-sm font-medium text-gray-300 mb-1">Primary Color (Accent)</label>
+                  <div class="flex items-center gap-3">
+                    <input type="color" id="settingsPrimaryColor" name="primary_color" value={restaurant.primary_color} class="w-16 h-10 bg-gray-800 border border-gray-700 rounded-md cursor-pointer" />
+                    <span id="primaryColorLabel" class="text-gray-300 font-mono text-sm uppercase px-3 py-2 bg-gray-800 border border-gray-700 rounded-md">{restaurant.primary_color}</span>
+                  </div>
+                </div>
+                <div>
+                  <label for="settingsSecondaryColor" class="block text-sm font-medium text-gray-300 mb-1">Secondary Color (Background)</label>
+                  <div class="flex items-center gap-3">
+                    <input type="color" id="settingsSecondaryColor" name="secondary_color" value={restaurant.secondary_color} class="w-16 h-10 bg-gray-800 border border-gray-700 rounded-md cursor-pointer" />
+                    <span id="secondaryColorLabel" class="text-gray-300 font-mono text-sm uppercase px-3 py-2 bg-gray-800 border border-gray-700 rounded-md">{restaurant.secondary_color}</span>
+                  </div>
+                </div>
+                <div>
+                  <label for="settingsTextColor" class="block text-sm font-medium text-gray-300 mb-1">Text Color</label>
+                  <div class="flex items-center gap-3">
+                    <input type="color" id="settingsTextColor" name="text_color" value={restaurant.text_color} class="w-16 h-10 bg-gray-800 border border-gray-700 rounded-md cursor-pointer" />
+                    <span id="textColorLabel" class="text-gray-300 font-mono text-sm uppercase px-3 py-2 bg-gray-800 border border-gray-700 rounded-md">{restaurant.text_color}</span>
+                  </div>
+                </div>
+                <div>
+                  <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors">Save Settings</button>
+                </div>
+              </form>
+              <div id="settingsSuccess" class="text-green-500 text-sm mt-4 hidden"></div>
+              <div id="settingsError" class="text-red-500 text-sm mt-4 hidden"></div>
+            </div>
+
+            
+            <div class="bg-gray-900 rounded-lg p-6">
+              <h2 class="text-xl font-semibold text-white mb-6">Live Preview</h2>
+              
+              <div id="livePreviewContainer" class="border border-gray-700 rounded-xl overflow-hidden shadow-2xl transition-colors duration-300 w-full max-w-sm mx-auto min-h-[450px] p-6 text-center" style={`background-color: ${restaurant.secondary_color}; color: ${restaurant.text_color};`}>
+                
+                <img 
+                  id="previewLogo" 
+                  src={restaurant.logo || '/images/placeholder.jpg'} 
+                  alt="Logo" 
+                  class="object-cover rounded-full mx-auto mb-4 border-4 shadow-md transition-all duration-300" 
+                  style={`border-color: ${restaurant.primary_color}; width: ${restaurant.logo_size || 128}px; height: ${restaurant.logo_size || 128}px; ${restaurant.logo ? '' : 'display:none;'}`} 
+                />
+                
+                <h3 id="previewName" class="text-2xl font-bold mb-6">{restaurant.name}</h3>
+                  
+                  <div class="text-left mb-4">
+                    <h4 class="text-xl font-bold border-b-2 pb-1 transition-colors duration-300" id="previewCategoryBorder" style={`border-color: ${restaurant.primary_color};`}>
+                      Destacados
+                    </h4>
+                  </div>
+                  
+                  <div class="bg-black/20 rounded-xl shadow-md overflow-hidden text-left">
+                    <div class="aspect-video w-full overflow-hidden bg-black/40">
+                      <div class="w-full h-full flex items-center justify-center opacity-50">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                      </div>
+                    </div>
+                    <div class="p-4">
+                      <h3 class="text-lg font-semibold" id="previewItemName">Ejemplo de Platillo</h3>
+                      <p id="previewPrice" class="text-xl font-bold mt-1 transition-colors duration-300" style={`color: ${restaurant.primary_color};`}>L 150.00</p>
+                    </div>
+                  </div>
+                  
+                  <div class="mt-6 flex justify-center gap-2">
+                    <span id="previewButton" class="px-4 py-2 rounded-full text-white text-sm font-medium transition-colors duration-300" style={`background-color: ${restaurant.primary_color};`}>
+                      Filtro Activo
+                    </span>
+                    <span class="px-4 py-2 rounded-full border border-current opacity-70 text-sm font-medium" style={`color: ${restaurant.text_color};`}>
+                      Inactivo
+                    </span>
+                  </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        
+        <div id="editModal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div class="bg-gray-900 rounded-lg p-6 w-full max-w-md">
+            <h2 class="text-xl font-semibold text-white mb-4">Edit Menu Item</h2>
+            <form id="editItemForm" class="space-y-4">
+              <input type="hidden" id="editItemId" name="id" />
+              <div>
+                <label for="editItemName" class="block text-sm font-medium text-gray-300 mb-1">Name</label>
+                <input type="text" id="editItemName" name="name" required class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-red-500" />
+              </div>
+              <div>
+                <label for="editItemPrice" class="block text-sm font-medium text-gray-300 mb-1">Price (L)</label>
+                <input type="number" id="editItemPrice" name="price" step="0.01" required class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-red-500" />
+              </div>
+              <div>
+                <label for="editItemCategory" class="block text-sm font-medium text-gray-300 mb-1">Category</label>
+                <select id="editItemCategory" name="category_id" required class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-red-500">
+                  {categories.map(category => (
+                    <option value={category.id}>{category.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-1">Image (Upload or URL)</label>
+                <div class="flex flex-col gap-3">
+                  <div class="flex items-center gap-3">
+                    <label for="editItemImageUpload" class="cursor-pointer bg-gray-800 border border-gray-600 hover:bg-gray-700 text-white text-sm font-medium py-2 px-4 rounded-md transition-colors whitespace-nowrap shadow-sm">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block mr-1 -mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                      Upload File
+                    </label>
+                    <span id="editItemFileName" class="text-sm text-gray-400 truncate">No file chosen</span>
+                    <input type="file" id="editItemImageUpload" accept="image/*" class="hidden file-upload-input" data-filename-id="editItemFileName" />
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs text-gray-500 font-semibold uppercase">OR</span>
+                    <input type="text" id="editItemImage" name="image" placeholder="Paste image URL here" class="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-red-500" />
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label for="editItemDescription" class="block text-sm font-medium text-gray-300 mb-1">Description (Optional)</label>
+                <textarea id="editItemDescription" name="description" rows="2" class="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-red-500"></textarea>
+              </div>
+              <div id="editItemError" class="text-red-500 text-sm hidden"></div>
+              <div class="flex gap-2 justify-end">
+                <button type="button" id="editCancelBtn" class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors">Cancel</button>
+                <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors">Save Changes</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+
+  <script>
+    const passwordGate = document.getElementById('passwordGate');
+    const dashboardContent = document.getElementById('dashboardContent');
+    const passwordForm = document.getElementById('passwordForm') as HTMLFormElement;
+    const passwordError = document.getElementById('passwordError');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    // Password form
+    if (passwordForm && passwordError) {
+      passwordForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(passwordForm);
+        const password = formData.get('password') as string;
+
+        try {
+          const response = await fetch('/api/auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password })
+          });
+
+          if (response.ok) {
+            window.location.reload();
+          } else {
+            const data = await response.json();
+            passwordError.textContent = data.error || 'Invalid password';
+            passwordError.classList.remove('hidden');
+          }
+        } catch (error) {
+          passwordError.textContent = 'An error occurred';
+          passwordError.classList.remove('hidden');
+        }
+      });
+    }
+
+    // Logout
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', async () => {
+        await fetch('/api/auth', { method: 'DELETE' });
+        document.cookie = 'dashboard_auth=; Path=/; Max-Age=0';
+        window.location.reload();
+      });
+    }
+
+    // Only run dashboard logic if dashboard content is present
+    if (dashboardContent) {
+      const tabBtns = document.querySelectorAll('.tab-btn');
+      const tabContents = document.querySelectorAll('.tab-content');
+      const addItemForm = document.getElementById('addItemForm') as HTMLFormElement;
+      const addCategoryForm = document.getElementById('addCategoryForm') as HTMLFormElement;
+      const settingsForm = document.getElementById('settingsForm') as HTMLFormElement;
+
+    // Tab switching
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        tabBtns.forEach(b => {
+          b.classList.remove('bg-red-600', 'text-white');
+          b.classList.add('bg-gray-800', 'text-gray-300');
+        });
+        btn.classList.remove('bg-gray-800', 'text-gray-300');
+        btn.classList.add('bg-red-600', 'text-white');
+
+        const tab = btn.getAttribute('data-tab');
+        tabContents.forEach(content => {
+          if (content.id === `${tab}Tab`) {
+            content.classList.remove('hidden');
+          } else {
+            content.classList.add('hidden');
+          }
+        });
+      });
+    });
+
+    // Helper: create a menu item row element
+    function createItemRow(item: any, categoryName: string) {
+      const row = document.createElement('div');
+      row.className = 'flex justify-between items-center bg-gray-800 p-3 rounded-md';
+      row.setAttribute('data-item-id', item.id);
+
+      const left = document.createElement('div');
+      left.className = 'flex items-center gap-3';
+      if (item.image) {
+        const img = document.createElement('img');
+        img.src = item.image;
+        img.alt = item.name;
+        img.className = 'w-10 h-10 rounded object-cover';
+        left.appendChild(img);
+      }
+      const info = document.createElement('div');
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'text-white';
+      nameSpan.textContent = item.name;
+      const priceSpan = document.createElement('span');
+      priceSpan.className = 'text-red-500 ml-2';
+      priceSpan.textContent = `L ${parseFloat(item.price).toFixed(2)}`;
+      info.appendChild(nameSpan);
+      info.appendChild(priceSpan);
+      left.appendChild(info);
+
+      const actions = document.createElement('div');
+      actions.className = 'flex gap-2';
+      const editBtn = document.createElement('button');
+      editBtn.className = 'edit-item text-blue-400 hover:text-blue-300';
+      editBtn.setAttribute('data-id', item.id);
+      editBtn.textContent = 'Edit';
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'delete-item text-gray-400 hover:text-red-500';
+      deleteBtn.setAttribute('data-id', item.id);
+      deleteBtn.textContent = 'Delete';
+      actions.appendChild(editBtn);
+      actions.appendChild(deleteBtn);
+
+      row.appendChild(left);
+      row.appendChild(actions);
+      return row;
+    }
+
+    // Helper: find or create the items container for a category
+    function getCategoryContainer(categoryId: string, categoryName: string) {
+      let found: HTMLElement | null = null;
+      document.querySelectorAll('#menuItemsList > div').forEach((section: Element) => {
+        const header = section.querySelector('h3');
+        if (header && header.textContent === categoryName) {
+          found = section.querySelector('div.space-y-2');
+        }
+      });
+      if (found) return found;
+
+      // Category section doesn't exist yet - create it
+      const section = document.createElement('div');
+      section.className = 'mb-6';
+      const h3 = document.createElement('h3');
+      h3.className = 'text-lg font-medium text-gray-300 mb-2';
+      h3.textContent = categoryName;
+      const container = document.createElement('div');
+      container.className = 'space-y-2';
+      section.appendChild(h3);
+      section.appendChild(container);
+      const menuList = document.getElementById('menuItemsList') as HTMLDivElement;
+      menuList.appendChild(section);
+      return container;
+    }
+
+    // Add item
+    addItemForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(addItemForm);
+      let data: any = Object.fromEntries(formData);
+      data.price = parseFloat(data.price as string);
+
+      const errorDiv = document.getElementById('addItemError') as HTMLDivElement;
+
+      try {
+        // Optional image upload
+        const fileInput = document.getElementById('itemImageUpload') as HTMLInputElement;
+        const file = fileInput.files ? fileInput.files[0] : null;
+
+        if (file) {
+          const uploadFormData = new FormData();
+          uploadFormData.append('file', file);
+          const uploadResponse = await fetch('/api/upload', {
+            method: 'POST',
+            body: uploadFormData
+          });
+          if (uploadResponse.ok) {
+            const uploadResult = await uploadResponse.json();
+            data.image = uploadResult.url;
+          } else {
+            errorDiv.textContent = 'Image upload failed';
+            errorDiv.classList.remove('hidden');
+            return;
+          }
+        }
+
+        const response = await fetch('/api/menu', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+          const item = await response.json();
+          const categoryImg = document.querySelector(`#itemCategory option[value="${item.category_id}"]`);
+          const categoryName = categoryImg ? categoryImg.textContent : 'Sin Categoría';
+          const container = getCategoryContainer(item.category_id, categoryName ?? 'Sin Categoría');
+          container.appendChild(createItemRow(item, categoryName ?? 'Sin Categoría'));
+          addItemForm.reset();
+          const fileNameEl = document.getElementById('itemImageFileName');
+          if (fileNameEl) fileNameEl.textContent = 'No file chosen';
+          errorDiv.classList.add('hidden');
+        } else {
+          const error = await response.json();
+          errorDiv.textContent = error.error || 'Failed to add item';
+          errorDiv.classList.remove('hidden');
+        }
+      } catch (error) {
+        errorDiv.textContent = 'An error occurred';
+        errorDiv.classList.remove('hidden');
+      }
+    });
+
+    // Add category
+    addCategoryForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(addCategoryForm);
+      const data = Object.fromEntries(formData);
+
+      try {
+        const response = await fetch('/api/categories', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+          const category = await response.json();
+
+          // Add to category list in sidebar
+          const list = document.getElementById('categoriesList') as HTMLDivElement;
+          const item = document.createElement('div');
+          item.className = 'flex justify-between items-center bg-gray-800 p-2 rounded-md';
+          const nameSpan = document.createElement('span');
+          nameSpan.className = 'text-white';
+          nameSpan.textContent = category.name;
+          const delBtn = document.createElement('button');
+          delBtn.className = 'delete-category text-gray-400 hover:text-red-500';
+          delBtn.setAttribute('data-id', category.id);
+          delBtn.textContent = 'Delete';
+          delBtn.addEventListener('click', handleDeleteCategory);
+          item.appendChild(nameSpan);
+          item.appendChild(delBtn);
+          list.appendChild(item);
+
+          // Add to add-item and edit-item category selects
+          const option = document.createElement('option');
+          option.value = category.id;
+          option.textContent = category.name;
+          (document.getElementById('itemCategory') as HTMLSelectElement).appendChild(option);
+          (document.getElementById('editItemCategory') as HTMLSelectElement).appendChild(option.cloneNode(true));
+
+          addCategoryForm.reset();
+        } else {
+          const error = await response.json();
+          alert(error.error || 'Failed to add category');
+        }
+      } catch (error) {
+        alert('An error occurred');
+      }
+    });
+
+    async function handleDeleteCategory(e: Event, btn?: HTMLElement) {
+      const targetBtn = btn || (e.currentTarget as HTMLElement);
+      const id = targetBtn.dataset.id;
+      if (confirm('Delete this category?')) {
+        const response = await fetch(`/api/categories?id=${id}`, { method: 'DELETE' });
+        if (response.ok) {
+          targetBtn.closest('[data-cat-id]')?.remove();
+          document.querySelectorAll(`#itemCategory option[value="${id}"], #editItemCategory option[value="${id}"]`).forEach(op => op.remove());
+          document.querySelectorAll(`#menuItemsList > div[data-category-id="${id}"]`).forEach(el => el.remove());
+        }
+      }
+    }
+
+    const menuItemsList = document.getElementById('menuItemsList') as HTMLDivElement;
+    menuItemsList.addEventListener('click', (e) => {
+      const target = (e.target as HTMLElement).closest('button');
+      if (!target) return;
+      if (target.classList.contains('edit-item') || target.classList.contains('edit-item-btn')) {
+        openEditModal(target.dataset.id);
+      } else if (target.classList.contains('delete-item') || target.classList.contains('delete-item-btn')) {
+        const id = target.dataset.id;
+        if (confirm('Delete this item?')) {
+          fetch(`/api/menu/${id}`, { method: 'DELETE' }).then(response => {
+            if (response.ok) {
+              const row = target.closest('[data-item-id]');
+              row?.remove();
+            }
+          });
+        }
+      }
+    });
+
+    const categoriesSidebar = document.getElementById('categoriesList') as HTMLDivElement;
+    categoriesSidebar.addEventListener('click', async (e) => {
+      const target = (e.target as HTMLElement).closest('button');
+      if (!target) return;
+      
+      if (target.classList.contains('delete-category-btn')) {
+        handleDeleteCategory(e, target);
+      } else if (target.classList.contains('move-category-btn')) {
+        const id = target.dataset.id;
+        const dir = target.dataset.dir;
+        target.disabled = true;
+        try {
+          const response = await fetch('/api/categories', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, direction: dir })
+          });
+          if (response.ok) {
+            window.location.reload(); // Recargar para mostrar el nuevo orden
+          } else {
+            target.disabled = false;
+          }
+        } catch(err) {
+          target.disabled = false;
+        }
+      }
+    });
+
+    // Edit item (open modal)
+    const editModal = document.getElementById('editModal') as HTMLDivElement;
+    const editItemForm = document.getElementById('editItemForm') as HTMLFormElement;
+    const editItemId = document.getElementById('editItemId') as HTMLInputElement;
+    const editItemName = document.getElementById('editItemName') as HTMLInputElement;
+    const editItemPrice = document.getElementById('editItemPrice') as HTMLInputElement;
+    const editItemCategory = document.getElementById('editItemCategory') as HTMLSelectElement;
+    const editItemImage = document.getElementById('editItemImage') as HTMLInputElement;
+    const editItemImageUpload = document.getElementById('editItemImageUpload') as HTMLInputElement;
+    const editItemDescription = document.getElementById('editItemDescription') as HTMLTextAreaElement;
+    const editItemError = document.getElementById('editItemError') as HTMLDivElement;
+    const editCancelBtn = document.getElementById('editCancelBtn') as HTMLButtonElement;
+
+    async function openEditModal(id?: string) {
+      if (!id) return;
+      const response = await fetch('/api/menu');
+      const items = await response.json();
+      const item = items.find((i: any) => i.id === id);
+      if (item) {
+        editItemId.value = item.id;
+        editItemName.value = item.name;
+        editItemPrice.value = item.price;
+        editItemCategory.value = item.category_id;
+        editItemImage.value = item.image || '';
+        editItemDescription.value = item.description || '';
+        editItemImageUpload.value = '';
+        const fileNameEl = document.getElementById('editItemFileName');
+        if (fileNameEl) fileNameEl.textContent = 'No file chosen';
+        editItemError.classList.add('hidden');
+        editModal.classList.remove('hidden');
+      }
+    }
+
+    // Edit modal cancel
+    editCancelBtn.addEventListener('click', () => {
+      editModal.classList.add('hidden');
+    });
+
+    // Edit item submit (with optional image upload)
+    editItemForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      let image = editItemImage.value;
+      const file = editItemImageUpload.files ? editItemImageUpload.files[0] : null;
+
+      try {
+        if (file) {
+          const formData = new FormData();
+          formData.append('file', file);
+          const uploadResponse = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData
+          });
+          if (uploadResponse.ok) {
+            const uploadResult = await uploadResponse.json();
+            image = uploadResult.url;
+          } else {
+            editItemError.textContent = 'Image upload failed';
+            editItemError.classList.remove('hidden');
+            return;
+          }
+        }
+
+        const data = {
+          name: editItemName.value,
+          price: parseFloat(editItemPrice.value),
+          category_id: editItemCategory.value,
+          image,
+          description: editItemDescription.value
+        };
+
+        const response = await fetch(`/api/menu/${editItemId.value}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+          const updated = await response.json();
+          editModal.classList.add('hidden');
+
+          // Update the row in-place
+          const row = document.querySelectorAll(`#menuItemsList [data-item-id="${editItemId.value}"]`)[0] as HTMLElement;
+          if (row) {
+            const oldCategoryId = (row.closest('[data-category-id]') as HTMLElement)?.dataset.categoryId;
+            const newCategory = getCategoryContainer(updated.category_id, editItemCategory.selectedOptions[0]?.textContent || 'Sin Categoría');
+            // Remove old row and append new row in correct category
+            row.remove();
+            newCategory.appendChild(createItemRow(updated, editItemCategory.selectedOptions[0]?.textContent || 'Sin Categoría'));
+            if (oldCategoryId && oldCategoryId !== updated.category_id) {
+              // Clean up empty old category section
+              const oldSection = document.querySelector(`#menuItemsList > div[data-category-id="${oldCategoryId}"]`) as HTMLElement;
+              if (oldSection && oldSection.querySelectorAll('[data-item-id]').length === 0) {
+                oldSection.remove();
+              }
+            }
+          }
+        } else {
+          const error = await response.json();
+          editItemError.textContent = error.error || 'Failed to update item';
+          editItemError.classList.remove('hidden');
+        }
+      } catch (error) {
+        editItemError.textContent = 'An error occurred';
+        editItemError.classList.remove('hidden');
+      }
+    });
+
+    // Save settings
+    settingsForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(settingsForm);
+      const data: any = Object.fromEntries(formData);
+      const successDiv = document.getElementById('settingsSuccess') as HTMLDivElement;
+      const errorDiv = document.getElementById('settingsError') as HTMLDivElement;
+
+      try {
+        // Optional logo upload
+        const logoUpload = document.getElementById('settingsLogoUpload') as HTMLInputElement;
+        const logoFile = logoUpload.files ? logoUpload.files[0] : null;
+
+        if (logoFile) {
+          const uploadFormData = new FormData();
+          uploadFormData.append('file', logoFile);
+          const uploadResponse = await fetch('/api/upload', {
+            method: 'POST',
+            body: uploadFormData
+          });
+          if (uploadResponse.ok) {
+            const uploadResult = await uploadResponse.json();
+            data.logo = uploadResult.url;
+          } else {
+            errorDiv.textContent = 'Logo upload failed';
+            errorDiv.classList.remove('hidden');
+            return;
+          }
+        }
+
+        const response = await fetch('/api/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+          successDiv.textContent = 'Settings saved!';
+          successDiv.classList.remove('hidden');
+          setTimeout(() => successDiv.classList.add('hidden'), 3000);
+        } else {
+          const error = await response.json();
+          errorDiv.textContent = error.error || 'Failed to save settings';
+          errorDiv.classList.remove('hidden');
+        }
+      } catch (error) {
+        errorDiv.textContent = 'An error occurred';
+        errorDiv.classList.remove('hidden');
+      }
+    });
+
+    // File upload UI logic
+    document.querySelectorAll('.file-upload-input').forEach((input) => {
+      input.addEventListener('change', (e) => {
+        const target = e.target as HTMLInputElement;
+        const filenameId = target.getAttribute('data-filename-id');
+        if (filenameId) {
+          const nameDisplay = document.getElementById(filenameId);
+          if (nameDisplay) {
+            nameDisplay.textContent = target.files && target.files.length > 0 ? target.files[0].name : 'No file chosen';
+          }
+        }
+      });
+    });
+
+    // Initialize
+    // Live preview logic
+    const settingsNameInput = document.getElementById('settingsName') as HTMLInputElement;
+    const settingsPrimaryColorInput = document.getElementById('settingsPrimaryColor') as HTMLInputElement;
+    const settingsSecondaryColorInput = document.getElementById('settingsSecondaryColor') as HTMLInputElement;
+    const settingsTextColorInput = document.getElementById('settingsTextColor') as HTMLInputElement;
+    const settingsLogoInput = document.getElementById('settingsLogo') as HTMLInputElement;
+    const settingsLogoUploadInput = document.getElementById('settingsLogoUpload') as HTMLInputElement;
+    const settingsLogoSizeInput = document.getElementById('settingsLogoSize') as HTMLInputElement;
+    const logoSizeValue = document.getElementById('logoSizeValue') as HTMLSpanElement;
+
+    const livePreviewContainer = document.getElementById('livePreviewContainer') as HTMLDivElement;
+    const previewLogo = document.getElementById('previewLogo') as HTMLImageElement;
+    const previewName = document.getElementById('previewName') as HTMLHeadingElement;
+    const previewCategoryBorder = document.getElementById('previewCategoryBorder') as HTMLHeadingElement;
+    const previewPrice = document.getElementById('previewPrice') as HTMLParagraphElement;
+    const previewButton = document.getElementById('previewButton') as HTMLSpanElement;
+    const formLogoPreview = document.getElementById('formLogoPreview') as HTMLImageElement;
+
+    settingsLogoSizeInput.addEventListener('input', (e) => {
+      const size = (e.target as HTMLInputElement).value;
+      logoSizeValue.textContent = size;
+      previewLogo.style.width = `${size}px`;
+      previewLogo.style.height = `${size}px`;
+    });
+
+    settingsNameInput.addEventListener('input', (e) => {
+      previewName.textContent = (e.target as HTMLInputElement).value || 'Restaurant Name';
+    });
+
+    const primaryColorLabel = document.getElementById('primaryColorLabel') as HTMLSpanElement;
+    const secondaryColorLabel = document.getElementById('secondaryColorLabel') as HTMLSpanElement;
+    const textColorLabel = document.getElementById('textColorLabel') as HTMLSpanElement;
+
+    settingsPrimaryColorInput.addEventListener('input', (e) => {
+      const color = (e.target as HTMLInputElement).value;
+      if (primaryColorLabel) primaryColorLabel.textContent = color;
+      previewCategoryBorder.style.borderColor = color;
+      previewPrice.style.color = color;
+      previewButton.style.backgroundColor = color;
+      previewLogo.style.borderColor = color;
+    });
+
+    settingsSecondaryColorInput.addEventListener('input', (e) => {
+      const color = (e.target as HTMLInputElement).value;
+      if (secondaryColorLabel) secondaryColorLabel.textContent = color;
+      livePreviewContainer.style.backgroundColor = color;
+    });
+
+    settingsTextColorInput.addEventListener('input', (e) => {
+      const color = (e.target as HTMLInputElement).value;
+      if (textColorLabel) textColorLabel.textContent = color;
+      livePreviewContainer.style.color = color;
+      // Also update the inactive filter text color to match the text color
+      const inactiveFilter = livePreviewContainer.querySelector('span.opacity-70') as HTMLSpanElement;
+      if (inactiveFilter) inactiveFilter.style.color = color;
+    });
+
+    function updateLogoPreview(src: string) {
+      if (src) {
+        if (previewLogo) {
+          previewLogo.src = src;
+          previewLogo.style.display = 'block';
+        }
+        if (formLogoPreview) {
+          formLogoPreview.src = src;
+          formLogoPreview.style.display = 'block';
+        }
+      } else {
+        if (previewLogo) previewLogo.style.display = 'none';
+        if (formLogoPreview) formLogoPreview.style.display = 'none';
+      }
+    }
+
+    settingsLogoInput.addEventListener('input', (e) => {
+      updateLogoPreview((e.target as HTMLInputElement).value);
+    });
+
+    settingsLogoUploadInput.addEventListener('change', (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          updateLogoPreview(ev.target?.result as string);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    }
+  </script>
+</Layout>
