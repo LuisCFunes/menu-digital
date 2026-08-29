@@ -1,7 +1,5 @@
 import type { APIRoute } from 'astro';
-import { writeFile, mkdir } from 'fs/promises';
-import { existsSync } from 'fs';
-import { join } from 'path';
+import { v2 as cloudinary } from 'cloudinary';
 
 import { isDashboardAuthenticated } from '../../lib/auth';
 
@@ -24,21 +22,26 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       });
     }
 
-    const uploadDir = join(process.cwd(), 'public', 'uploads');
-    if (!existsSync(uploadDir)) {
-      await mkdir(uploadDir, { recursive: true });
-    }
-
-    const timestamp = Date.now();
-    const filename = `${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-    const filepath = join(uploadDir, filename);
-
     const buffer = Buffer.from(await file.arrayBuffer());
-    await writeFile(filepath, buffer);
 
-    const url = `/uploads/${filename}`;
+    // Upload to Cloudinary using a stream
+    const result = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        { folder: 'menudigital' },
+        (error, result) => {
+          if (result) {
+            resolve(result);
+          } else {
+            reject(error);
+          }
+        }
+      );
+      uploadStream.end(buffer);
+    });
 
-    return new Response(JSON.stringify({ url, filename }), {
+    const url = (result as any).secure_url;
+
+    return new Response(JSON.stringify({ url, filename: file.name }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });

@@ -20,6 +20,7 @@
     "@node-rs/argon2": "^2.1.0",
     "@tailwindcss/vite": "^4.3.3",
     "astro": "^7.2.6",
+    "cloudinary": "^2.11.0",
     "tailwindcss": "^4.3.3"
   },
   "allowScripts": {
