@@ -1,6 +1,6 @@
 # 🍽️ Digital Menu Platform
 
-A modern, dynamic, and fully responsive Digital Menu platform designed for restaurants. This project features a beautiful public-facing menu and a secure, comprehensive admin dashboard for real-time inventory management.
+A modern, dynamic, and fully responsive Digital Menu platform designed for restaurants. This project features a beautiful public-facing menu and a secure, comprehensive admin dashboard for real-time menu content management.
 
 ## ✨ Features
 
