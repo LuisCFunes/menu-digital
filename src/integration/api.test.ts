@@ -204,4 +204,41 @@ describe('settings API', () => {
     });
     expect(badSize.status).toBe(400);
   });
+
+  it('ignores a password hash write, leaving the real password active', async () => {
+    const baseline = await login(PASSWORD);
+    expect(baseline.status).toBe(200);
+
+    const other = await login('some-other-pass');
+    expect(other.status).not.toBe(200);
+
+    const getRes = await authed('/api/settings');
+    expect(getRes.status).toBe(200);
+    const body = await getRes.json();
+    expect(body.dashboard_password).toBeUndefined();
+
+    const putBody = {
+      name: body.name,
+      logo: body.logo ?? '',
+      logo_size: body.logo_size,
+      cover_image: body.cover_image ?? '',
+      primary_color: body.primary_color,
+      secondary_color: body.secondary_color,
+      text_color: body.text_color,
+      dashboard_password: 'attacker-controlled-hash',
+    };
+
+    const putRes = await authed('/api/settings', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(putBody),
+    });
+    expect(putRes.status).toBe(200);
+
+    const stillReal = await login(PASSWORD);
+    expect(stillReal.status).toBe(200);
+
+    const injectedFails = await login('attacker-controlled-hash');
+    expect(injectedFails.status).not.toBe(200);
+  });
 });
