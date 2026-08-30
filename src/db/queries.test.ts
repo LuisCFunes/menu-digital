@@ -9,6 +9,7 @@ import {
   createCategory,
   getCategoriesByRestaurant,
   deleteCategory,
+  reorderCategory,
   createMenuItem,
   getMenuItemById,
   getMenuItemsByRestaurant,
@@ -137,5 +138,41 @@ describe('MenuItem CRUD', () => {
     const item = await createMenuItem(restaurant.id, category.id, 'Coca Cola', 35);
     const deleted = await deleteMenuItem(item.id);
     expect(deleted).toBe(true);
+  });
+});
+
+describe('Category reordering', () => {
+  it('returns not-found for an unknown category', async () => {
+    const restaurant = await createRestaurant('reorder-test', 'Reorder', 'pass');
+    expect(await reorderCategory(restaurant.id, 'nope', 'up')).toBe('not-found');
+  });
+
+  it('returns no-op at the edges', async () => {
+    const restaurant = await createRestaurant('reorder-test', 'Reorder', 'pass');
+    const a = await createCategory(restaurant.id, 'A', 0);
+    const c = await createCategory(restaurant.id, 'C', 2);
+    expect(await reorderCategory(restaurant.id, a.id, 'up')).toBe('no-op');
+    expect(await reorderCategory(restaurant.id, c.id, 'down')).toBe('no-op');
+  });
+
+  it('moves a category up', async () => {
+    const restaurant = await createRestaurant('reorder-test', 'Reorder', 'pass');
+    const a = await createCategory(restaurant.id, 'A', 0);
+    const b = await createCategory(restaurant.id, 'B', 1);
+    const c = await createCategory(restaurant.id, 'C', 2);
+    expect(await reorderCategory(restaurant.id, b.id, 'up')).toBe('moved');
+    expect((await getCategoriesByRestaurant(restaurant.id)).map((x) => x.name)).toEqual(['B', 'A', 'C']);
+    void c;
+  });
+
+  it('moves a category down', async () => {
+    const restaurant = await createRestaurant('reorder-test', 'Reorder', 'pass');
+    const a = await createCategory(restaurant.id, 'A', 0);
+    const b = await createCategory(restaurant.id, 'B', 1);
+    const c = await createCategory(restaurant.id, 'C', 2);
+    expect(await reorderCategory(restaurant.id, a.id, 'down')).toBe('moved');
+    expect((await getCategoriesByRestaurant(restaurant.id)).map((x) => x.name)).toEqual(['B', 'C', 'A']);
+    void a;
+    void c;
   });
 });

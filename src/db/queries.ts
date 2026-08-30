@@ -134,6 +134,35 @@ export async function deleteCategory(id: string): Promise<boolean> {
   return result.rowsAffected > 0;
 }
 
+export async function reorderCategory(
+  restaurantId: string,
+  categoryId: string,
+  direction: 'up' | 'down'
+): Promise<'moved' | 'not-found' | 'no-op'> {
+  const categories = await getCategoriesByRestaurant(restaurantId);
+  const index = categories.findIndex((c) => c.id === categoryId);
+  if (index === -1) return 'not-found';
+
+  // 'up' moves the category to the first position, 'down' to the last.
+  const target = direction === 'up' ? 0 : categories.length - 1;
+  if (index === target) return 'no-op';
+
+  // Renumber sort_order contiguously so the resulting order is stable even
+  // when existing records share or have gaps in sort_order.
+  const ordered = categories.map((c) => c.id);
+  const [moved] = ordered.splice(index, 1);
+  ordered.splice(target, 0, moved);
+
+  const db = await getDatabase();
+  for (let i = 0; i < ordered.length; i++) {
+    await db.execute({
+      sql: 'UPDATE categories SET sort_order = ? WHERE id = ?',
+      args: [i, ordered[i]],
+    });
+  }
+  return 'moved';
+}
+
 // Menu item queries
 export interface MenuItem {
   id: string;

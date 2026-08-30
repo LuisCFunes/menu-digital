@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { getSingleRestaurant, getCategoriesByRestaurant, createCategory, deleteCategory } from '../../db/queries';
+import { getSingleRestaurant, getCategoriesByRestaurant, createCategory, deleteCategory, reorderCategory } from '../../db/queries';
 
 import { isDashboardAuthenticated } from '../../lib/auth';
 
@@ -60,7 +60,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       });
     }
 
-    const category = await createCategory(restaurant.id, name);
+    const categories = await getCategoriesByRestaurant(restaurant.id);
+    const nextOrder = categories.length > 0 ? Math.max(...categories.map((c) => c.sort_order)) + 1 : 0;
+    const category = await createCategory(restaurant.id, name, nextOrder);
     return new Response(JSON.stringify(category), {
       status: 201,
       headers: { 'Content-Type': 'application/json' },
@@ -93,72 +95,19 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
     const body = await request.json();
     const { id, direction } = body;
 
-    if (!id || !direction) {
+    if (!id || (direction !== 'up' && direction !== 'down')) {
       return new Response(JSON.stringify({ error: 'ID and direction are required' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    const categories = await getCategoriesByRestaurant(restaurant.id);
-    const index = categories.findIndex(c => c.id === id);
-    if (index === -1) {
+    const result = await reorderCategory(restaurant.id, id, direction);
+    if (result === 'not-found') {
       return new Response(JSON.stringify({ error: 'Category not found' }), {
         status: 404,
         headers: { 'Content-Type': 'application/json' },
       });
-    }
-
-    if (direction === 'up' && index > 0) {
-      // Swap sort_order
-      const current = categories[index];
-      const prev = categories[index - 1];
-      
-      const currentSort = current.sort_order;
-      const prevSort = prev.sort_order;
-      
-      // If sort orders are the same (e.g. 0), artificially fix them
-      if (currentSort === prevSort) {
-        // Fix all sort orders first
-        for (let i = 0; i < categories.length; i++) {
-          categories[i].sort_order = i;
-        }
-        categories[index].sort_order = index - 1;
-        categories[index - 1].sort_order = index;
-        
-        // Update all
-        const { updateCategory } = await import('../../db/queries');
-        for (const cat of categories) {
-          await updateCategory(cat.id, { sort_order: cat.sort_order });
-        }
-      } else {
-        const { updateCategory } = await import('../../db/queries');
-        await updateCategory(current.id, { sort_order: prevSort });
-        await updateCategory(prev.id, { sort_order: currentSort });
-      }
-    } else if (direction === 'down' && index < categories.length - 1) {
-      const current = categories[index];
-      const next = categories[index + 1];
-      
-      const currentSort = current.sort_order;
-      const nextSort = next.sort_order;
-      
-      if (currentSort === nextSort) {
-        for (let i = 0; i < categories.length; i++) {
-          categories[i].sort_order = i;
-        }
-        categories[index].sort_order = index + 1;
-        categories[index + 1].sort_order = index;
-        
-        const { updateCategory } = await import('../../db/queries');
-        for (const cat of categories) {
-          await updateCategory(cat.id, { sort_order: cat.sort_order });
-        }
-      } else {
-        const { updateCategory } = await import('../../db/queries');
-        await updateCategory(current.id, { sort_order: nextSort });
-        await updateCategory(next.id, { sort_order: currentSort });
-      }
     }
 
     return new Response(JSON.stringify({ success: true }), {
