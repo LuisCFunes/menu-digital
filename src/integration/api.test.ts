@@ -171,3 +171,37 @@ describe('menu item API', () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe('settings API', () => {
+  it('does not expose the password hash', async () => {
+    const res = await authed('/api/settings');
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.dashboard_password).toBeUndefined();
+  });
+
+  it('rejects invalid colors', async () => {
+    const res = await authed('/api/settings', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ primary_color: 'red; } body { background: url(evil) }' }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it('rejects blank names and out-of-range logo sizes', async () => {
+    const blank = await authed('/api/settings', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: '   ' }),
+    });
+    expect(blank.status).toBe(400);
+
+    const badSize = await authed('/api/settings', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ logo_size: '9999' }),
+    });
+    expect(badSize.status).toBe(400);
+  });
+});

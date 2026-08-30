@@ -20,7 +20,8 @@ export const GET: APIRoute = async ({ cookies }) => {
       });
     }
 
-    return new Response(JSON.stringify(restaurant), {
+    const { dashboard_password, ...safe } = restaurant;
+    return new Response(JSON.stringify(safe), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
@@ -53,13 +54,59 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
     const { name, logo, logo_size, cover_image, primary_color, secondary_color, text_color } = body;
 
     const updates: any = {};
-    if (name !== undefined) updates.name = name;
-    if (logo !== undefined) updates.logo = logo;
-    if (logo_size !== undefined) updates.logo_size = parseInt(logo_size, 10);
-    if (cover_image !== undefined) updates.cover_image = cover_image;
-    if (primary_color !== undefined) updates.primary_color = primary_color;
-    if (secondary_color !== undefined) updates.secondary_color = secondary_color;
-    if (text_color !== undefined) updates.text_color = text_color;
+
+    if (name !== undefined) {
+      if (typeof name !== 'string' || name.trim().length === 0 || name.trim().length > 200) {
+        return new Response(JSON.stringify({ error: 'Invalid name' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      updates.name = name.trim();
+    }
+
+    if (logo !== undefined) {
+      if (typeof logo !== 'string') {
+        return new Response(JSON.stringify({ error: 'Invalid logo' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      updates.logo = logo.trim() || null;
+    }
+
+    if (cover_image !== undefined) {
+      if (typeof cover_image !== 'string') {
+        return new Response(JSON.stringify({ error: 'Invalid cover image' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      updates.cover_image = cover_image.trim() || null;
+    }
+
+    if (logo_size !== undefined) {
+      const size = Number(logo_size);
+      if (!Number.isFinite(size) || size < 50 || size > 250) {
+        return new Response(JSON.stringify({ error: 'Invalid logo size' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      updates.logo_size = Math.round(size);
+    }
+
+    for (const [key, value] of Object.entries({ primary_color, secondary_color, text_color })) {
+      if (value !== undefined) {
+        if (!isHexColor(value)) {
+          return new Response(JSON.stringify({ error: `Invalid ${key}` }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+        updates[key] = value;
+      }
+    }
 
     const updated = await updateRestaurant(restaurant.id, updates);
     return new Response(JSON.stringify(updated), {
@@ -73,3 +120,7 @@ export const PUT: APIRoute = async ({ request, cookies }) => {
     });
   }
 };
+
+function isHexColor(value: unknown): value is string {
+  return typeof value === 'string' && /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(value.trim());
+}
