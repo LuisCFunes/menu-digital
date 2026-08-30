@@ -27,7 +27,9 @@ const categorizedItems = categories.map(category => ({
       {restaurant.logo && (
         <img 
           src={restaurant.logo} 
-          alt={restaurant.name} 
+          alt={restaurant.name}
+          fetchpriority="high"
+          decoding="async"
           class="object-cover rounded-full mx-auto mb-4 border-4 shadow-md transition-all duration-300"
           style={`border-color: var(--color-primary); width: ${restaurant.logo_size || 128}px; height: ${restaurant.logo_size || 128}px;`}
         />
