@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { getSingleRestaurant, getMenuItemsByRestaurant, createMenuItem, getMenuItemById } from '../../db/queries';
+import { getSingleRestaurant, getMenuItemsByRestaurant, createMenuItem } from '../../db/queries';
 
 import { isDashboardAuthenticated } from '../../lib/auth';
 

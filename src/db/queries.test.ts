@@ -11,7 +11,6 @@ import {
   deleteCategory,
   reorderCategory,
   createMenuItem,
-  getMenuItemById,
   getMenuItemsByRestaurant,
   getMenuItemsByCategory,
   updateMenuItem,

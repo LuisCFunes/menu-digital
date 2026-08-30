@@ -1,10 +1,8 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import CategorySection from '../components/CategorySection.astro';
-import { getDatabase } from '../db/schema';
 import { getSingleRestaurant, getCategoriesByRestaurant, getMenuItemsByRestaurant } from '../db/queries';
 
-const db = await getDatabase();
 const restaurant = await getSingleRestaurant();
 
 if (!restaurant) {
