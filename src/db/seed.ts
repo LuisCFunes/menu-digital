@@ -1,4 +1,6 @@
 import fs from 'fs';
+import path from 'path';
+
 if (fs.existsSync('.env')) {
   process.loadEnvFile('.env');
 }
@@ -7,15 +9,28 @@ import { createRestaurant, createCategory, createMenuItem } from './queries';
 import { hashPassword } from '../lib/password';
 
 async function seed() {
-  console.log('Seeding database...');
+  const password = process.env.ADMIN_PASSWORD;
+  if (!password || password.length < 8) {
+    console.error('Set ADMIN_PASSWORD (at least 8 characters) in .env before seeding.');
+    process.exit(1);
+  }
 
-  // Create single restaurant (Costillal) with dashboard password
-  const hashedPassword = await hashPassword('costillal123');
+  const url = process.env.TURSO_DATABASE_URL || '';
+  if (url.startsWith('libsql://') && !process.argv.includes('--force')) {
+    console.error('Refusing to seed a remote Turso database. Pass --force to override.');
+    process.exit(1);
+  }
+
+  const dbPath = path.join(process.cwd(), 'src', 'data', 'database.sqlite');
+  console.log(`Seeding database at ${url || `file:${dbPath}`}...`);
+
+  const hashedPassword = await hashPassword(password);
   const restaurant = await createRestaurant(
     'costillal',
     'El Costillal Grill',
     hashedPassword,
-    '/logo costilla grill.png',
+    '/logo-costilla-grill.png',
+    undefined,
     '#dc2626',
     '#030712'
   );
@@ -50,4 +65,7 @@ async function seed() {
   closeDatabase();
 }
 
-seed();
+seed().catch((error) => {
+  console.error('Seed failed:', error);
+  process.exit(1);
+});

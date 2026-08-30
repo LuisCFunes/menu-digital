@@ -49,9 +49,11 @@ A modern, dynamic, and fully responsive Digital Menu platform designed for resta
    TURSO_DATABASE_URL=libsql://your-db-name.turso.io
    TURSO_AUTH_TOKEN=your-turso-auth-token
    CLOUDINARY_URL=cloudinary://<api_key>:<api_secret>@<cloud_name>
+   ADMIN_PASSWORD=<at-least-8-chars-admin-password>
    ```
 
 4. **Seed the database**
+   Set `ADMIN_PASSWORD` in `.env` first. The seed refuses to run against a remote Turso database unless you pass `--force`.
    Populate your database with the initial schema and example data:
    ```bash
    npm run seed
