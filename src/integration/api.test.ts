@@ -242,3 +242,31 @@ describe('settings API', () => {
     expect(injectedFails.status).not.toBe(200);
   });
 });
+
+describe('authentication hardening', () => {
+  it('rejects an invalid password with 401', async () => {
+    const res = await login('wrong-password');
+    expect(res.status).toBe(401);
+  });
+
+  it('sets a hardened session cookie on login', async () => {
+    const res = await login(PASSWORD, '203.0.113.5');
+    expect(res.status).toBe(200);
+    const cookie = res.headers.getSetCookie()[0] ?? '';
+    expect(cookie).toContain('HttpOnly');
+    expect(cookie).toContain('SameSite=Strict');
+    expect(cookie).toContain('Secure');
+    expect(cookie).toContain('Max-Age=86400');
+  });
+
+  it('returns 429 after repeated failed logins', async () => {
+    const ip = '198.51.100.10';
+    for (let i = 0; i < 10; i++) {
+      const res = await login('wrong-password', ip);
+      expect(res.status).toBe(401);
+    }
+    const blocked = await login('wrong-password', ip);
+    expect(blocked.status).toBe(429);
+    expect(blocked.headers.get('retry-after')).toBeTruthy();
+  });
+});
