@@ -27,7 +27,13 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     // Upload to Cloudinary using a stream
     const result = await new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
-        { folder: 'menudigital' },
+        { 
+          folder: 'menudigital',
+          transformation: [
+            { width: 800, crop: 'limit' },
+            { fetch_format: 'auto', quality: 'auto' }
+          ]
+        },
         (error, result) => {
           if (result) {
             resolve(result);
