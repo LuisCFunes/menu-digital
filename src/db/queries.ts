@@ -154,12 +154,15 @@ export async function reorderCategory(
   ordered.splice(target, 0, moved);
 
   const db = await getDatabase();
-  for (let i = 0; i < ordered.length; i++) {
-    await db.execute({
+  // Apply all renumbering updates atomically so concurrent readers never see
+  // a transient mid-loop state and concurrent reorders cannot interleave into
+  // duplicate/gapped sort_order values.
+  await db.batch(
+    ordered.map((id, i) => ({
       sql: 'UPDATE categories SET sort_order = ? WHERE id = ?',
-      args: [i, ordered[i]],
-    });
-  }
+      args: [i, id],
+    }))
+  );
   return 'moved';
 }
 
