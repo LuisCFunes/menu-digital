@@ -63,6 +63,17 @@ async function authed(pathname: string, init: RequestInit = {}): Promise<Respons
 beforeAll(async () => {
   await build({ root: ROOT });
 
+  // Clamp the worker env like the spawned server below. astro's build() may
+  // load .env (which can contain real production Turso credentials) into
+  // process.env; without this clamp the seeding below would hit the REMOTE
+  // Turso DB while the server reads the local test file, causing a mismatch
+  // (server sees no restaurant -> login 401) and touching production data.
+  // Set AFTER build (so env loading can't re-introduce it) and BEFORE the
+  // first getDatabase() call (the client is created once with the env it sees).
+  process.env.TURSO_DATABASE_URL = '';
+  process.env.TURSO_AUTH_TOKEN = '';
+  process.env.DB_PATH = '';
+
   const db = await getDatabase();
   await db.execute('DELETE FROM sessions');
   await db.execute('DELETE FROM menu_items');
@@ -83,6 +94,18 @@ beforeAll(async () => {
     args: ['integration-item', RESTAURANT_ID, 'integration-category', 'Costillas BBQ', 285, 0],
   });
   closeDatabase();
+
+  // Containment guard: prove the seed landed in the LOCAL test file rather
+  // than some ambient/remote TURSO_DATABASE_URL. If the value had leaked, a
+  // raw local-file read would be empty and this fails loudly up front instead
+  // of as a mysterious 401 much later.
+  const localDb = await getDatabase();
+  const localCheck = await localDb.execute({
+    sql: 'SELECT COUNT(*) AS n FROM restaurants WHERE id = ?',
+    args: [RESTAURANT_ID],
+  });
+  closeDatabase();
+  expect(Number((localCheck.rows[0] as any).n)).toBe(1);
 
   await assertPortFree(PORT, '127.0.0.1');
 
