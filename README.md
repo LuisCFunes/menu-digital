@@ -67,9 +67,18 @@ A modern, dynamic, and fully responsive Digital Menu platform designed for resta
 
 ## 🔒 Security
 
-- **Argon2 Hashing**: The admin dashboard password is encrypted using Argon2, ensuring industry-standard security.
-- **Session Management**: Secure UUID sessions stored directly in the edge database.
-- **Route Protection**: API routes and dashboard pages are strictly guarded by SSR authentication middleware.
+- **Argon2 Hashing**: The admin dashboard password is stored using Argon2 (legacy plaintext
+  passwords are upgraded to Argon2 on first login).
+- **Session Management**: HTTP-only, SameSite=Strict cookies backed by 24h sessions in the database;
+  cookies carry the `Secure` flag in production builds.
+- **Rate Limiting**: Failed dashboard logins are limited to 10 attempts per 15 minutes per IP.
+- **Route Protection**: API routes and dashboard pages are guarded by server-side auth checks.
+- **Input Validation**: Name, colors, and logo sizes are validated on the server before they reach the
+  database (colors must be `#rgb`/`#rrggbb`).
+- **Security Headers**: All responses include a Content-Security-Policy, `X-Frame-Options: DENY`,
+  `X-Content-Type-Options: nosniff`, and `Referrer-Policy: no-referrer`.
+- **Secrets**: Turso and Cloudinary credentials live only in environment variables; `.env` is gitignored
+  and database files are no longer tracked. Rotate any credential that has been shared in plain text.
 
 ---
 *Developed by Luis Funes.*
