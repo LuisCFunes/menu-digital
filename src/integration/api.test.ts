@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { spawn, type ChildProcess } from 'child_process';
+import net from 'node:net';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { build } from 'astro';
@@ -30,6 +31,21 @@ async function waitForServer(timeoutMs = 30000): Promise<void> {
     }
   }
   throw new Error('Server did not start in time');
+}
+
+async function assertPortFree(port: number, host: string): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const probe = net.createServer().listen(port, host);
+    probe.once('error', (err: NodeJS.ErrnoException) => {
+      reject(
+        new Error(
+          `Port ${port} on ${host} is already in use (${err.code ?? err.message}). ` +
+            'A stale test server may still be running. Kill it before re-running the integration suite.'
+        )
+      );
+    });
+    probe.once('listening', () => probe.close(() => resolve()));
+  });
 }
 
 async function login(password: string, ip?: string): Promise<Response> {
@@ -68,6 +84,8 @@ beforeAll(async () => {
   });
   closeDatabase();
 
+  await assertPortFree(PORT, '127.0.0.1');
+
   server = spawn(process.execPath, [path.join(ROOT, 'dist', 'server', 'entry.mjs')], {
     cwd: ROOT,
     env: {
@@ -82,10 +100,34 @@ beforeAll(async () => {
       TURSO_AUTH_TOKEN: '',
       DB_PATH: '',
     },
-    stdio: 'ignore',
+    // Pipe stderr so we can surface boot failures; stdin/stdout are unused.
+    stdio: ['ignore', 'ignore', 'pipe'],
   });
 
-  await waitForServer();
+  // Capture the server's stderr and surface boot failures (EADDRINUSE,
+  // missing build, crash on startup) instead of an unexplained timeout.
+  let serverError = '';
+  let booted = false;
+  server.stderr?.setEncoding('utf8');
+  server.stderr?.on('data', (chunk: string) => {
+    serverError += chunk;
+  });
+  server.once('error', (err) => {
+    serverError += `\n[spawn error] ${err.message}`;
+  });
+  const bootPromise = new Promise<never>((_, reject) => {
+    server.once('exit', (code) => {
+      if (!booted) {
+        reject(
+          new Error(
+            `Test server exited during startup (code ${code}). stderr:\n${serverError || '(no stderr captured)'}`
+          )
+        );
+      }
+    });
+  });
+  await Promise.race([waitForServer(), bootPromise]);
+  booted = true;
 
   const res = await login(PASSWORD);
   expect(res.status).toBe(200);
@@ -94,7 +136,7 @@ beforeAll(async () => {
 
 afterAll(() => {
   server?.kill();
-  closeDatabase();
+  // The DB connection was already closed in beforeAll, after seeding.
 });
 
 describe('app boots', () => {
