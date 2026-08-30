@@ -1,0 +1,16 @@
+---
+const hasTurso = !!process.env.TURSO_DATABASE_URL;
+const tursoStart = hasTurso ? process.env.TURSO_DATABASE_URL.substring(0, 15) : 'none';
+const hasDbPath = !!process.env.DB_PATH;
+const dbPath = process.env.DB_PATH || 'none';
+---
+<!DOCTYPE html>
+<html>
+<body>
+  <h1>Debug Info</h1>
+  <p>Has TURSO_DATABASE_URL: {hasTurso}</p>
+  <p>TURSO_DATABASE_URL starts with: {tursoStart}</p>
+  <p>Has DB_PATH: {hasDbPath}</p>
+  <p>DB_PATH: {dbPath}</p>
+</body>
+</html>
