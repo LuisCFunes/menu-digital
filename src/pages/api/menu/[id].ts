@@ -20,7 +20,7 @@ export const PUT: APIRoute = async ({ params, request, cookies }) => {
       });
     }
 
-    const existing = getMenuItemById(id);
+    const existing = await getMenuItemById(id);
     if (!existing) {
       return new Response(JSON.stringify({ error: 'Item not found' }), {
         status: 404,
@@ -76,7 +76,7 @@ export const DELETE: APIRoute = async ({ params, cookies }) => {
       });
     }
 
-    const deleted = await deleteMenuItem(id);
+    await deleteMenuItem(id);
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },

@@ -155,3 +155,19 @@ describe('security headers', () => {
     expect(res.headers.get('content-security-policy')).toContain("default-src 'self'");
   });
 });
+
+describe('menu item API', () => {
+  it('returns 404 when editing a non-existent item', async () => {
+    const res = await authed('/api/menu/nonexistent-id', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'X', price: 1, category_id: 'x' }),
+    });
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 404 when deleting a non-existent item', async () => {
+    const res = await authed('/api/menu/nonexistent-id', { method: 'DELETE' });
+    expect(res.status).toBe(404);
+  });
+});
