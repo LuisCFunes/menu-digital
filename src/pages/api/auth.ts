@@ -76,7 +76,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     cookies.set('dashboard_auth', sessionId, {
       path: '/',
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: import.meta.env.PROD || process.env.NODE_ENV === 'production',
       sameSite: 'strict',
       maxAge: 60 * 60 * 24, // 24 hours
     });
